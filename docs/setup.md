@@ -1,4 +1,4 @@
-﻿# OrbitOps — Local Setup & Development Guide
+# OrbitOps — Local Setup & Development Guide
 
 This guide describes how to run and verify OrbitOps locally on Windows, macOS, or Linux without external cloud dependencies.
 
@@ -32,7 +32,13 @@ cd backend
 # Sync dependencies and create virtual environment using uv
 uv sync --extra dev
 
-# Run unit and smoke tests
+# Run database migrations (applies all 12 tables)
+uv run alembic upgrade head
+
+# Seed virtual satellites, subsystems, and ground stations (idempotent)
+uv run python -m app.cli.seed
+
+# Run unit, migration, and persistence tests
 uv run pytest -v
 
 # Run lint checks

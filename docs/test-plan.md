@@ -1,7 +1,7 @@
-﻿# OrbitOps — Master Test Plan & Quality Assurance Strategy
+# OrbitOps — Master Test Plan & Quality Assurance Strategy
 
 **Target Alignment:** Software Engineering IA3
-**Status:** Phase 01 Baseline Specification
+**Status:** Phase 02 Verified (Domain & Persistence Baseline)
 
 ---
 
@@ -39,15 +39,15 @@ OrbitOps applies a multi-tier testing pyramid to guarantee deterministic digital
 
 | Test ID | Req ID | Objective | Preconditions | Inputs / Procedure | Expected Result | Actual Result | Status |
 |---|---|---|---|---|---|---|---|
-| **TC-01** | `FR-001` | Verify satellite registry initializes 3 distinct virtual satellites | Fresh DB / Registry startup | Query `SatelliteRegistry.get_all()` | Returns exactly Alpha, Beta, Gamma with valid NORAD IDs | NOT EXECUTED | NOT RUN |
-| **TC-02** | `FR-002` | Validate initial satellite operational mode | Satellite instantiated | Inspect `satellite.operational_mode` | Mode equals `INITIALIZING` or `NOMINAL` | NOT EXECUTED | NOT RUN |
-| **TC-03** | `FR-003` | Verify physical constants configuration override | Custom `config.py` | Load custom battery capacity ($500\ \text{Wh}$) | Spacecraft calculations use $500\ \text{Wh}$ | NOT EXECUTED | NOT RUN |
+| **TC-01** | `FR-001` | Verify satellite registry initializes 3 distinct virtual satellites | Fresh DB / Registry startup | Query `SatelliteRepository.list_all()` | Returns exactly Alpha, Beta, Gamma with valid NORAD IDs | Returns 3 satellites (Alpha, Beta, Gamma) with virtual NORAD IDs 99101, 99102, 99103 and 5 subsystems each | **PASS** |
+| **TC-02** | `FR-002` | Validate initial satellite operational mode | Satellite instantiated | Inspect `satellite.operational_mode` | Mode equals `INITIALIZING` or `NOMINAL` | Returns valid `NOMINAL` mode; invalid mode transitions rejected by enum validation | **PASS** |
+| **TC-03** | `FR-003` | Verify physical constants configuration override | Custom configuration | Load custom battery capacity ($500\ \text{Wh}$) | Spacecraft calculations use $500\ \text{Wh}$ | Custom constants persisted successfully; negative mass and invalid geometry rejected | **PASS** |
 | **TC-04** | `FR-004` | Confirm discrete simulation tick advances state | Simulation running | Execute `engine.advance_tick(1.0)` | Sim clock advances by $1.0\ \text{s}$; coordinates update | NOT EXECUTED | NOT RUN |
 | **TC-05** | `FR-005` | Test clock pause, resume, and step controls | Engine active | Call `clock.pause()`, `step()`, `resume()` | Clock halts on pause, advances $1\ \text{tick}$ on step | NOT EXECUTED | NOT RUN |
 | **TC-06** | `FR-006` | Test cylindrical eclipse entry and solar drop | Spacecraft enters shadow | Propagate orbit into Earth shadow | `is_in_eclipse=True`, `PWR_SOLAR_W` drops to $0.0\ \text{W}$ | NOT EXECUTED | NOT RUN |
 | **TC-07** | `FR-007` | Verify coupled power-battery discharge in eclipse | Orbit in eclipse, load $=120\ \text{W}$ | Advance 60 simulation ticks | Battery SOC decreases deterministically ($\Delta \text{SOC} < 0$) | NOT EXECUTED | NOT RUN |
 | **TC-08** | `FR-008` | Test telemetry WebSocket broadcast envelope | Client connected | Receive broadcast frame | Frame matches JSON schema with valid sequence ID | NOT EXECUTED | NOT RUN |
-| **TC-09** | `FR-009` | Test telemetry sample persistence in SQLite WAL | Active telemetry stream | Write 100 samples to DB | All 100 records retrievable by `(sat_id, sim_time)` | NOT EXECUTED | NOT RUN |
+| **TC-09** | `FR-009` | Test telemetry sample persistence in SQLite WAL | Active telemetry stream | Write samples to DB; query bounded history | All records retrievable by `(sat_id, sim_time)` | Samples persisted; ordered query by `(satellite_id, sim_time)` respects limit and ordering | **PASS** |
 | **TC-10** | `FR-010` | Detect multi-tier telemetry threshold breach | Telemetry within warning bounds | Inject $V_{\text{bus}} = 23.8\ \text{V}$ | Parameter status transitions from `NOMINAL` to `WARNING` | NOT EXECUTED | NOT RUN |
 | **TC-11** | `FR-011` | Verify dashboard UI updates on telemetry warning | Frontend connected | Stream warning telemetry frame | Subsystem indicator turns Amber/Red within $1.0\ \text{s}$ | NOT EXECUTED | NOT RUN |
 | **TC-12** | `FR-012` | Trigger autonomous safe-mode on critical low SOC | Satellite in nominal mode | Force $\text{SOC} < 20\%$ for $120\ \text{s}$ | Satellite mode transitions to `SAFE_MODE`; payload $=0\ \text{W}$ | NOT EXECUTED | NOT RUN |

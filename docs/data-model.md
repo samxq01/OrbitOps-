@@ -1,4 +1,4 @@
-﻿# OrbitOps — Database Design & Data Model Specification
+# OrbitOps — Database Design & Data Model Specification
 
 **Target Implementation:** Phase 02 (Persistence & Domain Models)
 **ORM Framework:** SQLAlchemy 2.0 (Declarative Base with Mapped Columns)
@@ -146,9 +146,9 @@ Anomalies detected by the Anomaly Investigator.
 | `detected_at` | `DATETIME` | `NOT NULL` | Simulation timestamp when detected |
 | `resolved_at` | `DATETIME` | `NULL` | Simulation timestamp when resolved |
 | `acknowledged` | `BOOLEAN` | `NOT NULL DEFAULT FALSE`| Operator acknowledgment flag |
-| `confidence_score`| `FLOAT` | `NOT NULL` | Calibrated diagnosis confidence ($0.0\dots 1.0$) |
-| `primary_cause` | `VARCHAR(100)` | `NOT NULL` | Leading hypothesized root cause |
-| `recommended_action`| `VARCHAR(100)`| `NOT NULL` | Suggested recovery telecommand |
+| `confidence_score`| `FLOAT` | `NULL` | Calibrated diagnosis confidence ($0.0\dots 1.0$), null until diagnosis |
+| `primary_cause` | `VARCHAR(100)` | `NULL` | Leading hypothesized root cause, null until diagnosis |
+| `recommended_action`| `VARCHAR(100)`| `NULL` | Suggested recovery telecommand, null until diagnosis |
 
 *Indexes:*
 - `idx_incidents_sat_sev`: `(satellite_id, severity, acknowledged)`
@@ -255,4 +255,31 @@ Periodic full-system state snapshots enabling rewind and crash recovery.
 2. **Indexing Strategy:**
    - Queries for live charting retrieve telemetry by `(satellite_id, sim_timestamp DESC) LIMIT 300`, which executes in $< 1\ \text{ms}$ over the composite B-tree index.
 3. **WAL Concurrency Assurance:**
-   - With `PRAGMA journal_mode=WAL;`, reader threads (REST queries, WebSocket publishers) never block the background telemetry writer thread.
+   - With `PRAGMA journal_mode=WAL;`, reader threads (REST queries, WebSocket publishers) never block the background telemetry writer thread. Note that WAL mode improves concurrent reads during background writes, but write transactions remain strictly serialized by SQLite.
+
+---
+
+## 4. Schema Integrity, Constraints & Persistence Rules (Phase 02 Baseline)
+
+1. **Global Uniqueness of Satellite Names and Identifiers:**
+   - `satellites.satellite_id` (`SAT-001`, `SAT-002`, `SAT-003`) is the immutable natural primary key.
+   - `satellites.name` is enforced unique across the database to prevent ambiguity during telecommand uplink or telemetry filtering.
+2. **Subsystem Isolation:**
+   - A satellite has exactly one record per subsystem type via `UNIQUE (satellite_id, subsystem_type)`.
+   - Foreign key cascading deletes remove orphaned subsystem records if a virtual satellite is decommissioned.
+3. **UTC Datetime Handling:**
+   - All timestamps (`sim_timestamp`, `recorded_at`, `submitted_at`, `detected_at`) are ISO-8601 strings stored in SQLite and normalized to timezone-aware `datetime.UTC` instances in Python.
+4. **Physical Check Constraints:**
+   - `ck_sat_dry_mass`: `dry_mass_kg > 0`
+   - `ck_sat_fuel_mass`: `fuel_mass_kg >= 0`
+   - `ck_sat_semi_major`: `semi_major_axis_km > 6371.0` (above Earth radius)
+   - `ck_sub_temp`: `temp_c >= -273.15` (absolute zero floor)
+   - `ck_sub_pwr`: `power_draw_w >= 0`
+   - `ck_telem_soc`: `batt_soc >= 0 AND batt_soc <= 100` (percentage bounds)
+   - `ck_gs_lat`: `latitude >= -90.0 AND latitude <= 90.0`
+   - `ck_gs_lon`: `longitude >= -180.0 AND longitude <= 180.0`
+5. **Append-Only Mission Event Log:**
+   - `mission_events` enforces monotonic `sequence_number` allocation (`UNIQUE`).
+   - Event repository restricts write operations to `append_event()` without update or delete interfaces.
+6. **Virtual NORAD Catalog Separation:**
+   - Virtual educational satellites utilize IDs `99101`, `99102`, and `99103` in the simulated 90000+ catalog block, guaranteeing zero collisions with actual NORAD Space-Track records.

@@ -4,7 +4,7 @@
 
 > **Tagline:** Observe. Diagnose. Decide. Recover.
 > **Course:** Software Engineering (IA3 Project)
-> **Status:** Phase 01 — Software Requirements, System Architecture & UML Design
+> **Status:** Phase 02 — Satellite Domain Models, Database & Persistence Engine
 
 ---
 
@@ -32,7 +32,7 @@ Unlike traditional satellite trackers that present disconnected, synthetic numbe
 ## 3. Technology Stack
 
 - **Frontend:** Next.js (App Router), TypeScript (Strict Mode), React 19, Tailwind CSS, Lucide Icons, Three.js / React Three Fiber, Recharts.
-- **Backend:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0, SQLite (WAL mode), WebSockets.
+- **Backend:** Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 (Declarative ORM), Alembic migrations, SQLite (WAL mode, foreign key enforcement), WebSockets.
 - **Package Management:** `uv` (Fast Python package manager) and `npm` (Node.js).
 - **Tooling & Quality:** Ruff, ESLint, Pytest, Playwright.
 
@@ -42,13 +42,20 @@ Unlike traditional satellite trackers that present disconnected, synthetic numbe
 
 ```
 OrbitOps/
-├── backend/                  # FastAPI Authoritative Backend Service
+├── backend/                  # FastAPI Authoritative Backend Service & Persistence
+│   ├── alembic/              # Alembic Schema Migrations (12 Core Tables)
 │   ├── app/
 │   │   ├── api/v1/           # API Routers & Endpoints (/api/v1/health)
+│   │   ├── cli/              # Management Commands (Idempotent DB Seeder)
 │   │   ├── core/             # Configuration & Lifecycle Settings
+│   │   ├── db/               # Centralized Engine, Session Local, Pragmas & Bootstrap
+│   │   ├── domain/           # Pure Domain Enums, Constants & Custom Exceptions
+│   │   ├── models/           # SQLAlchemy 2.0 Typed Declarative ORM Models
+│   │   ├── repositories/     # Data Access Repositories (Satellite, Telemetry, Events...)
 │   │   ├── schemas/          # Pydantic v2 Serialization DTOs
 │   │   └── main.py           # Application Entrypoint
-│   ├── tests/                # Automated Pytest Suite
+│   ├── tests/                # Automated Pytest Suite (Unit, Domain, Repos, Migrations)
+│   ├── alembic.ini           # Alembic Database Migration Configuration
 │   ├── pyproject.toml        # Python Dependencies & Ruff Configuration
 │   └── uv.lock               # Deterministic Python Lockfile
 ├── frontend/                 # Next.js App Router Frontend
@@ -59,9 +66,13 @@ OrbitOps/
 │   ├── package.json          # Node Dependencies & Build Scripts
 │   ├── tsconfig.json         # Strict TypeScript Configuration
 │   └── package-lock.json     # Node Dependency Lockfile
-├── docs/                     # Architectural, SRS, and Roadmap Docs
+├── docs/                     # Architectural, SRS, Data Model, and Roadmap Docs
 │   ├── overview.md           # Project Overview & Innovations
 │   ├── architecture.md       # Modular Monolith & Subsystem Design
+│   ├── data-model.md         # 12-Table SQLite Schema & Integrity Constraints
+│   ├── srs.md                # Software Requirements Specification (SRS)
+│   ├── requirements-traceability.md # Requirements Traceability Matrix (RTM)
+│   ├── test-plan.md          # Master Test Plan & Verification Catalog
 │   ├── setup.md              # Local Setup Instructions
 │   └── roadmap.md            # 16-Phase Execution Roadmap
 ├── scripts/                  # Cross-Platform Local Scripts
@@ -95,11 +106,19 @@ cd OrbitOps-
 git checkout feature/orbitops-ia3
 ```
 
-### 2. Run Backend API
+### 2. Run Backend API & Database Setup
 
 ```bash
 cd backend
 uv sync --extra dev
+
+# Run Alembic migrations (creates 12 relational tables)
+uv run alembic upgrade head
+
+# Seed virtual satellites (SAT-001 Alpha, SAT-002 Beta, SAT-003 Gamma)
+uv run python -m app.cli.seed
+
+# Start development API server
 uv run uvicorn app.main:app --reload --port 8000
 ```
 - API Health Status: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
@@ -123,8 +142,8 @@ Run all test suites locally:
 ### Backend Tests & Linting
 ```bash
 cd backend
-uv run pytest -v       # Run automated smoke & unit tests
-uv run ruff check .    # Run Python code quality linting
+uv run pytest -v       # Run automated unit, migration, domain & persistence tests (23 passed)
+uv run ruff check .    # Run Python code quality linting (0 errors)
 ```
 
 ### Frontend Typecheck, Linting & Build
@@ -144,6 +163,6 @@ npm run build          # Run Next.js production bundle compilation
 
 ## 8. Current Implementation Phase
 
-**Current Phase:** `Phase 01 — Software Requirements, System Architecture & UML Design`
-**Git Checkpoint:** `feat(phase-01): define requirements and architecture`
+**Current Phase:** `Phase 02 — Satellite Domain Models, Database & Persistence Engine`
+**Git Checkpoint:** `feat(phase-02): implement satellite domain and persistence`
 **Active Development Branch:** `feature/orbitops-ia3`
