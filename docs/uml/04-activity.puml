@@ -1,0 +1,87 @@
+﻿@startuml "04-activity"
+!theme plain
+skinparam backgroundColor #080F1D
+skinparam defaultFontColor #E2E8F0
+skinparam arrowColor #42C8FF
+skinparam activityBackgroundColor #111C2E
+skinparam activityBorderColor #42C8FF
+skinparam activityFontColor #FFFFFF
+skinparam activityDiamondBackgroundColor #18263B
+skinparam activityDiamondBorderColor #729CFF
+skinparam activityDiamondFontColor #FFFFFF
+
+start
+:Simulation Tick Generates Telemetry;
+:Ingest Telemetry Frame;
+
+if (Is Telemetry Valid & Well-Formed?) then (yes)
+  :Normalize Sensor Readings;
+  :Evaluate Subsystem Threshold Matrix;
+else (no - corrupt/truncated)
+  :Log Corrupt Telemetry Error;
+  :Drop Frame & Request Frame Retransmit;
+  stop
+endif
+
+if (Anomaly or Threshold Breach Detected?) then (yes)
+  :Instantiate IncidentRecord (Open Alarm);
+  :Query Historical Telemetry Context (T-300s to T);
+  :Assemble Evidence Proof Records;
+  :Correlate Physical Failure Hypotheses;
+else (no - nominal)
+  :Update Nominal Dashboard Gauges;
+  :Record Telemetry Sample;
+  stop
+endif
+
+if (Is Telemetry Evidence Sufficient for Diagnosis?) then (yes - sufficient)
+  :Score Hypothesis Confidence (>= 70%);
+  :Rank Root Causes by Likelihood;
+  :Generate Recommended Recovery Procedure;
+else (no - ambiguous / incomplete)
+  :Flag Low Confidence Diagnosis (< 70%);
+  :Recommend Supplemental Telemetry Polling;
+endif
+
+:Present Incident, Evidence Proof Matrix & Action to Operator;
+
+if (Operator Decides to Authorize Recovery Action?) then (yes)
+  :Assemble Satellite Telecommand Packet;
+  :Set Command Status to QUEUED;
+  :Validate Flight Preconditions;
+else (no - observe / dismiss)
+  :Operator Acknowledges Alert Without Action;
+  :Log Incident Acknowledgment;
+  stop
+endif
+
+if (Preconditions Satisfied? \n(In contact window, sufficient power, no safety locks)) then (yes - approved)
+  :Set Command Status to APPROVED;
+  :Uplink Telecommand to Spacecraft Bus;
+  :Set Command Status to EXECUTING;
+  :Apply Subsystem State Modification;
+else (no - rejected)
+  :Set Command Status to REJECTED;
+  :Record Precondition Failure Reason;
+  :Alert Operator of Uplink Invalidation;
+  stop
+endif
+
+:Monitor Post-Command Subsystem Response (T+60s);
+
+if (Did Subsystem Recover to Nominal Bounds?) then (yes - recovery success)
+  :Set Command Status to COMPLETED;
+  :Transition Satellite Mode to NOMINAL;
+  :Close Incident as RESOLVED_SUCCESSFUL;
+  :Record Success Event & State Delta;
+else (no - recovery failed)
+  :Set Command Status to FAILED;
+  :Trigger Autonomous Safe-Mode Lockout;
+  :Escalate Incident to EMERGENCY_CRITICAL;
+  :Record Failed Recovery Event;
+endif
+
+:Compile Incident Debrief Record into Event Store;
+stop
+
+@enduml

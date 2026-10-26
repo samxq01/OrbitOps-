@@ -1,0 +1,124 @@
+﻿@startuml "03-sequence"
+!theme plain
+skinparam backgroundColor #080F1D
+skinparam defaultFontColor #E2E8F0
+skinparam arrowColor #42C8FF
+skinparam actorBorderColor #729CFF
+skinparam actorBackgroundColor #111C2E
+skinparam participantBackgroundColor #111C2E
+skinparam participantBorderColor #42C8FF
+skinparam participantFontColor #FFFFFF
+skinparam sequenceLifeLineBorderColor #729CFF
+skinparam sequenceGroupBackgroundColor #18263B
+skinparam sequenceGroupBorderColor #42C8FF
+skinparam sequenceGroupFontColor #42C8FF
+
+actor "Mission Operator" as Op
+participant "Frontend Console" as UI
+participant "FastAPI Gateway" as API
+participant "Mission Service" as MS
+participant "Anomaly Investigator" as Inv
+participant "Command Validator" as Val
+participant "Simulation Engine" as Sim
+participant "Event Repository" as DB
+
+== 1. Anomaly Discovery & Evidence Investigation ==
+
+Op -> UI : Selects active alert (INC-2026-001)
+activate UI
+UI -> API : GET /api/v1/incidents/INC-2026-001
+activate API
+API -> MS : get_incident_details("INC-2026-001")
+activate MS
+
+MS -> Inv : evaluate_incident_evidence("INC-2026-001")
+activate Inv
+Inv -> DB : fetch_recent_telemetry("SAT-001", window_sec=300)
+activate DB
+DB --> Inv : return TelemetrySamples (PWR_SOLAR_W, BATT_SOC, PWR_BUS_V)
+deactivate DB
+
+Inv -> Inv : compile_evidence_proof_matrix()
+note over Inv
+  Correlates:
+  - Solar array drive stall (0 W) [SUPPORTING]
+  - Battery discharge rate -1.8% SOC/min [SUPPORTING]
+  - Optical payload drawing 180 W in eclipse [CONTRADICTING nominal]
+  Confidence: 89%
+end note
+
+Inv --> MS : DiagnosticReport (Hypotheses, Proofs, Action: "SHED_PAYLOAD")
+deactivate Inv
+MS --> API : IncidentDetailsDTO
+deactivate MS
+API --> UI : 200 OK (IncidentDetails + EvidenceProofMatrix)
+deactivate API
+
+UI --> Op : Displays symptoms, proof matrix & suggested command: CMD_SHED_PAYLOAD
+deactivate UI
+
+== 2. Recovery Command Submission & Precondition Gate ==
+
+Op -> UI : Submits CMD_SHED_PAYLOAD with SAT-001
+activate UI
+UI -> API : POST /api/v1/commands (payload: CMD_SHED_PAYLOAD)
+activate API
+API -> MS : queue_and_validate_command(cmd)
+activate MS
+
+MS -> DB : save_command(status="QUEUED")
+activate DB
+DB --> MS : command_saved
+deactivate DB
+
+MS -> Val : validate_preconditions(cmd, "SAT-001")
+activate Val
+Val -> Sim : get_current_spacecraft_state("SAT-001")
+activate Sim
+Sim --> Val : SpacecraftState (SOC=38%, Contact=GS_KOUROU, El=18deg)
+deactivate Sim
+
+Val -> Val : verify_contact_window() & verify_power_interlocks()
+
+alt Precondition Check Fails (e.g., Out of Contact Window)
+  Val --> MS : ValidationResult(is_valid=False, reason="ERR_OUT_OF_CONTACT")
+  MS -> DB : update_command(status="REJECTED", reason="ERR_OUT_OF_CONTACT")
+  MS --> API : CommandResponse(status="REJECTED")
+  API --> UI : 422 Unprocessable Entity
+  UI --> Op : Alert: Command rejected (Wait for next AOS pass)
+else Preconditions Satisfied
+  Val --> MS : ValidationResult(is_valid=True)
+  deactivate Val
+
+  MS -> DB : update_command(status="APPROVED")
+  MS -> Sim : uplink_telecommand(cmd)
+  activate Sim
+
+  Sim -> Sim : transition_command_status("EXECUTING")
+  Sim -> Sim : execute_shed_payload("SAT-001")
+  note over Sim
+    - Optical payload power reduced: 180 W -> 0 W
+    - Total bus load dropped from 280 W to 100 W
+    - Battery discharge rate slows from -1.8% to -0.3% SOC/min
+    - Satellite mode: DEGRADED -> NOMINAL
+  end note
+
+  Sim -> DB : record_event("COMMAND_COMPLETED", delta={"PL_POWER_W": 0})
+  activate DB
+  DB --> Sim : ack
+  deactivate DB
+
+  Sim --> MS : ExecutionSuccess(new_mode="NOMINAL", bus_v=27.8)
+  deactivate Sim
+
+  MS -> DB : update_command(status="COMPLETED")
+  MS --> API : CommandResponse(status="COMPLETED", state="NOMINAL")
+  deactivate MS
+  API --> UI : 200 OK (CommandResult)
+  deactivate API
+
+  UI --> Op : Verified Outcome Display (Bus stabilized, telemetry green)
+  deactivate UI
+end
+
+@enduml

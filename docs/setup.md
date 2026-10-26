@@ -1,4 +1,4 @@
-# OrbitOps — Local Setup & Development Guide
+﻿# OrbitOps — Local Setup & Development Guide
 
 This guide describes how to run and verify OrbitOps locally on Windows, macOS, or Linux without external cloud dependencies.
 
@@ -42,7 +42,7 @@ uv run ruff check .
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-Verify backend health at: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)  
+Verify backend health at: [http://127.0.0.1:8000/api/v1/health](http://127.0.0.1:8000/api/v1/health)
 Interactive API Documentation at: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---

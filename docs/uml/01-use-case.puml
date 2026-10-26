@@ -1,0 +1,91 @@
+﻿@startuml "01-use-case"
+!theme plain
+skinparam backgroundColor #080F1D
+skinparam defaultFontColor #E2E8F0
+skinparam arrowColor #42C8FF
+skinparam actorBorderColor #729CFF
+skinparam actorBackgroundColor #111C2E
+skinparam usecaseBackgroundColor #111C2E
+skinparam usecaseBorderColor #42C8FF
+skinparam usecaseFontColor #FFFFFF
+skinparam packageBorderColor #1E3352
+skinparam packageBackgroundColor #0B1424
+skinparam packageFontColor #729CFF
+
+left to right direction
+
+actor "Observer" as obs
+actor "Mission Operator" as op
+actor "Mission Administrator" as admin
+
+' Actor inheritance hierarchy
+obs <|-- op
+op <|-- admin
+
+rectangle "OrbitOps Mission Operations Console & Simulator" as sys {
+  package "Fleet & Telemetry" {
+    usecase "View Satellite Fleet" as UC_Fleet
+    usecase "Monitor Telemetry" as UC_Telem
+    usecase "Stream Real-Time Data" as UC_Stream
+    usecase "View 3D Orbital Visualization" as UC_3D
+    usecase "Review Ground Contacts" as UC_Ground
+  }
+
+  package "Diagnostic & Incident Operations" {
+    usecase "Investigate Incident" as UC_Investigate
+    usecase "Evaluate Evidence Proofs" as UC_Evidence
+    usecase "Recommend Recovery Action" as UC_Recommend
+    usecase "Generate Incident Report" as UC_Report
+  }
+
+  package "Command & Control" {
+    usecase "Issue Satellite Command" as UC_IssueCmd
+    usecase "Validate Preconditions" as UC_ValidateCmd
+    usecase "Execute Safe Command" as UC_ExecCmd
+  }
+
+  package "Simulation & Replay" {
+    usecase "Replay Mission History" as UC_Replay
+    usecase "Control Simulation Clock" as UC_Clock
+    usecase "Inject Fault Scenario" as UC_InjectFault
+    usecase "Configure Scenario Parameters" as UC_ConfigScenario
+    usecase "Run What-If Sandbox" as UC_Sandbox
+  }
+}
+
+' Observer Associations
+obs --> UC_Fleet
+obs --> UC_Telem
+obs --> UC_3D
+obs --> UC_Ground
+obs --> UC_Replay
+obs --> UC_Report
+
+' Operator Associations
+op --> UC_Investigate
+op --> UC_IssueCmd
+op --> UC_Sandbox
+
+' Admin Associations
+admin --> UC_Clock
+admin --> UC_InjectFault
+admin --> UC_ConfigScenario
+
+' Internal Use Case Relationships
+UC_Telem ..> UC_Stream : <<include>>
+UC_Investigate ..> UC_Evidence : <<include>>
+UC_Recommend .> UC_Investigate : <<extend>>
+UC_IssueCmd ..> UC_ValidateCmd : <<include>>
+UC_ValidateCmd ..> UC_ExecCmd : <<include>>
+
+note right of UC_ValidateCmd
+  Enforces ground contact line-of-sight,
+  power budget margin, and interlock rules
+end note
+
+note right of UC_Evidence
+  Compares telemetry proof against
+  competing physical failure hypotheses
+end note
+
+@enduml

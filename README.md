@@ -4,7 +4,7 @@
 
 > **Tagline:** Observe. Diagnose. Decide. Recover.
 > **Course:** Software Engineering (IA3 Project)
-> **Status:** Phase 00 — Project Foundation (Active Development)
+> **Status:** Phase 01 — Software Requirements, System Architecture & UML Design
 
 ---
 
@@ -144,6 +144,6 @@ npm run build          # Run Next.js production bundle compilation
 
 ## 8. Current Implementation Phase
 
-**Current Phase:** `Phase 00 — Repository Initialization and Foundation`
-**Git Checkpoint:** `feat(phase-00): bootstrap OrbitOps monorepo`
+**Current Phase:** `Phase 01 — Software Requirements, System Architecture & UML Design`
+**Git Checkpoint:** `feat(phase-01): define requirements and architecture`
 **Active Development Branch:** `feature/orbitops-ia3`

@@ -1,7 +1,7 @@
-# OrbitOps — Project Overview
+﻿# OrbitOps — Project Overview
 
-> **Tagline:** Observe. Diagnose. Decide. Recover.  
-> **Classification:** Educational Satellite Mission Control & Digital Twin Simulator  
+> **Tagline:** Observe. Diagnose. Decide. Recover.
+> **Classification:** Educational Satellite Mission Control & Digital Twin Simulator
 > **Course:** Software Engineering (IA3 Project)
 
 ---

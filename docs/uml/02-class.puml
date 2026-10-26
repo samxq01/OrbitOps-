@@ -1,0 +1,280 @@
+﻿@startuml "02-class"
+!theme plain
+skinparam backgroundColor #080F1D
+skinparam defaultFontColor #E2E8F0
+skinparam arrowColor #42C8FF
+skinparam classBackgroundColor #111C2E
+skinparam classBorderColor #42C8FF
+skinparam classHeaderBackgroundColor #18263B
+skinparam classFontColor #FFFFFF
+skinparam packageBorderColor #1E3352
+skinparam packageBackgroundColor #0B1424
+skinparam packageFontColor #729CFF
+
+enum SatelliteMode {
+  INITIALIZING
+  NOMINAL
+  DEGRADED
+  SAFE_MODE
+  EMERGENCY
+  RECOVERY
+  OFFLINE
+}
+
+enum CommandStatus {
+  QUEUED
+  VALIDATING
+  APPROVED
+  REJECTED
+  EXECUTING
+  COMPLETED
+  FAILED
+}
+
+enum HealthStatus {
+  NOMINAL
+  WARNING
+  CRITICAL
+}
+
+enum EvidencePolarity {
+  SUPPORTING
+  CONTRADICTING
+}
+
+package "Mission & Simulation Core" {
+  class Mission {
+    - mission_id: String
+    - name: String
+    - start_time: DateTime
+    - status: String
+    + get_active_satellites(): List<Satellite>
+    + get_elapsed_time(): Float
+  }
+
+  class SimulationClock {
+    - current_sim_time: DateTime
+    - time_warp_factor: Float
+    - is_paused: Boolean
+    + tick(dt: Float): DateTime
+    + pause(): Void
+    + resume(): Void
+    + set_warp(factor: Float): Void
+    + step(): DateTime
+  }
+
+  class SimulationEngine {
+    - is_running: Boolean
+    - step_size_sec: Float
+    + advance_tick(): Void
+    + register_satellite(sat: Satellite): Void
+    + trigger_fault(scenario: FaultScenario): Void
+    + create_snapshot(): Dict
+  }
+}
+
+package "Spacecraft Digital Twin" {
+  class Satellite {
+    - satellite_id: String
+    - name: String
+    - norad_id: Integer
+    - operational_mode: SatelliteMode
+    - latitude_deg: Float
+    - longitude_deg: Float
+    - altitude_km: Float
+    - is_in_eclipse: Boolean
+    + step(dt: Float): Void
+    + get_overall_health(): HealthStatus
+    + transition_mode(new_mode: SatelliteMode): Boolean
+    + apply_command(cmd: SatelliteCommand): Boolean
+  }
+
+  abstract class SatelliteSubsystem {
+    - subsystem_name: String
+    - health: HealthStatus
+    - power_draw_w: Float
+    - temperature_c: Float
+    + {abstract} update(dt: Float, env_data: Dict): Void
+    + get_telemetry(): Dict
+  }
+
+  class PowerSubsystem {
+    - bus_voltage_v: Float
+    - solar_generation_w: Float
+    - battery_soc_pct: Float
+    - battery_capacity_wh: Float
+    - is_charging: Boolean
+    + update(dt: Float, env: Dict): Void
+  }
+
+  class ThermalSubsystem {
+    - internal_temp_c: Float
+    - radiator_flux_w: Float
+    - heater_active: Boolean
+    + update(dt: Float, env: Dict): Void
+    + set_heater(enabled: Boolean): Void
+  }
+
+  class ADCSSubsystem {
+    - pointing_mode: String
+    - angular_rate_dps: Float
+    - roll_deg: Float
+    - pitch_deg: Float
+    - yaw_deg: Float
+    + update(dt: Float, env: Dict): Void
+    + set_pointing(mode: String): Void
+  }
+
+  class CommsSubsystem {
+    - carrier_locked: Boolean
+    - snr_db: Float
+    - doppler_hz: Float
+    - tx_power_w: Float
+    + update(dt: Float, env: Dict): Void
+  }
+
+  class PayloadSubsystem {
+    - instrument_status: String
+    - storage_used_mb: Float
+    - storage_capacity_mb: Float
+    + update(dt: Float, env: Dict): Void
+    + capture_science(): Void
+  }
+
+  class TelemetrySample {
+    - sample_id: String
+    - satellite_id: String
+    - sim_timestamp: DateTime
+    - recorded_at: DateTime
+    - metrics: Dict
+    - health_state: HealthStatus
+  }
+}
+
+package "Ground & Communication" {
+  class GroundStation {
+    - station_id: String
+    - name: String
+    - latitude_deg: Float
+    - longitude_deg: Float
+    - min_elevation_deg: Float
+    + check_visibility(sat: Satellite): Boolean
+    + compute_elevation(sat: Satellite): Float
+  }
+
+  class ContactWindow {
+    - window_id: String
+    - station_id: String
+    - satellite_id: String
+    - aos_time: DateTime
+    - los_time: DateTime
+    - max_elevation_deg: Float
+    + is_active(time: DateTime): Boolean
+  }
+}
+
+package "Diagnostic & Command Control" {
+  class FaultScenario {
+    - scenario_id: String
+    - name: String
+    - target_satellite_id: String
+    - trigger_time: DateTime
+    - fault_type: String
+    - is_active: Boolean
+    + execute(engine: SimulationEngine): Void
+  }
+
+  class Incident {
+    - incident_id: String
+    - satellite_id: String
+    - title: String
+    - symptoms: List<String>
+    - detected_at: DateTime
+    - acknowledged: Boolean
+    - resolution_status: String
+    + add_evidence(proof: EvidenceRecord): Void
+    + calculate_confidence(): Float
+  }
+
+  class EvidenceRecord {
+    - evidence_id: String
+    - incident_id: String
+    - telemetry_mnemonic: String
+    - observed_value: Float
+    - expected_value: Float
+    - polarity: EvidencePolarity
+    - hypothesis: String
+    - explanation: String
+  }
+
+  class SatelliteCommand {
+    - command_id: String
+    - satellite_id: String
+    - command_mnemonic: String
+    - parameters: Dict
+    - status: CommandStatus
+    - rejection_reason: String
+    - submitted_at: DateTime
+    - executed_at: DateTime
+  }
+
+  class CommandValidator {
+    + validate(cmd: SatelliteCommand, sat: Satellite, window: ContactWindow): Boolean
+    - verify_contact_window(sat: Satellite, window: ContactWindow): Boolean
+    - verify_power_margin(sat: Satellite, cmd: SatelliteCommand): Boolean
+    - verify_interlocks(sat: Satellite, cmd: SatelliteCommand): Boolean
+  }
+}
+
+package "Persistence & Replay" {
+  class MissionEvent {
+    - event_id: String
+    - event_type: String
+    - satellite_id: String
+    - sequence_num: Integer
+    - sim_timestamp: DateTime
+    - details: Dict
+  }
+
+  class MissionReplay {
+    - replay_id: String
+    - start_time: DateTime
+    - end_time: DateTime
+    - playback_position: DateTime
+    - is_active: Boolean
+    + seek_to(timestamp: DateTime): TelemetrySample
+    + stream_next(): TelemetrySample
+  }
+}
+
+' Relationships & Multiplicities
+Mission "1" *-- "3" Satellite : manages
+Mission "1" o-- "1" SimulationClock : tracks
+SimulationEngine "1" o-- "1" SimulationClock : drives
+SimulationEngine "1" *-- "3" Satellite : updates
+
+Satellite "1" *-- "5" SatelliteSubsystem : composes
+SatelliteSubsystem <|-- PowerSubsystem
+SatelliteSubsystem <|-- ThermalSubsystem
+SatelliteSubsystem <|-- ADCSSubsystem
+SatelliteSubsystem <|-- CommsSubsystem
+SatelliteSubsystem <|-- PayloadSubsystem
+
+Satellite "1" ..> "0..*" TelemetrySample : emits
+GroundStation "1" o-- "0..*" ContactWindow : schedules
+Satellite "1" -- "0..*" ContactWindow : intersects
+
+SimulationEngine "1" ..> "0..*" FaultScenario : injects
+Satellite "1" ..> "0..*" Incident : experiences
+Incident "1" *-- "1..*" EvidenceRecord : contains
+
+SatelliteCommand "0..*" -- "1" Satellite : targets
+CommandValidator ..> SatelliteCommand : validates
+CommandValidator ..> Satellite : checks state
+CommandValidator ..> ContactWindow : checks pass
+
+Mission "1" *-- "0..*" MissionEvent : records
+MissionReplay ..> MissionEvent : inspects
+MissionReplay ..> TelemetrySample : re-broadcasts
+
+@enduml

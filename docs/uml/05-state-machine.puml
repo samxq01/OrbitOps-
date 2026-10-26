@@ -1,0 +1,93 @@
+﻿@startuml "05-state-machine"
+!theme plain
+skinparam backgroundColor #080F1D
+skinparam defaultFontColor #E2E8F0
+skinparam arrowColor #42C8FF
+skinparam stateBackgroundColor #111C2E
+skinparam stateBorderColor #42C8FF
+skinparam stateFontColor #FFFFFF
+skinparam stateStartColor #22C55E
+skinparam stateEndColor #EF4444
+
+[*] --> INITIALIZING : Boot / Power-On
+
+state INITIALIZING {
+  INITIALIZING : entry / Load spacecraft physical constants
+  INITIALIZING : do / Verify memory checksum & sensor sanity
+  INITIALIZING : exit / Register in Active Constellation Fleet
+}
+
+state NOMINAL {
+  NOMINAL : entry / Enable nominal payload operations
+  NOMINAL : do / Continuous telemetry broadcasting (1 Hz)
+  NOMINAL : do / Closed-loop nadir / sun-pointing ADCS
+}
+
+state DEGRADED {
+  DEGRADED : entry / Restrict high-draw payload duties
+  DEGRADED : do / Monitor failing subsystem parameters
+  DEGRADED : do / Await operator investigation or triage
+}
+
+state SAFE_MODE {
+  SAFE_MODE : entry / Cut off all non-essential loads (Payload=0W)
+  SAFE_MODE : entry / Orient solar arrays to coarse sun-pointing
+  SAFE_MODE : do / Transmit low-rate telemetry beacon (0.2 Hz)
+  SAFE_MODE : do / Maintain survival heaters active
+}
+
+state EMERGENCY {
+  EMERGENCY : entry / Issue autonomous acoustic/visual alarm to ground
+  EMERGENCY : do / Critical power brownout or thermal runaway containment
+  EMERGENCY : do / Reject standard commands without emergency override
+}
+
+state RECOVERY {
+  RECOVERY : entry / Execute validated telecommand sequence
+  RECOVERY : do / Evaluate post-recovery sensor telemetry
+  RECOVERY : do / Gradual subsystem power-on ramp
+}
+
+state OFFLINE {
+  OFFLINE : entry / Loss of communication or catastrophic deorbit
+  OFFLINE : do / Read-only telemetry archive retention
+}
+
+' Transitions & Guards
+INITIALIZING --> NOMINAL : [Self-test passed && Bus voltage >= 26.0V] / Log "BOOT_COMPLETE"
+INITIALIZING --> OFFLINE : [Hardware initialization failure] / Alert Ground
+
+NOMINAL --> DEGRADED : [Subsystem threshold warning || Minor sensor SEU] / Trigger "WARNING_ALARM"
+DEGRADED --> NOMINAL : [Telemetry recovers within nominal bounds] / Clear Alarm
+
+DEGRADED --> SAFE_MODE : [Battery SOC < 30% || Thermal critical || Loss of attitude] / Shed Loads
+NOMINAL --> SAFE_MODE : [Autonomous fault trigger || Ground command CMD_ENTER_SAFE] / Orient Sun
+
+SAFE_MODE --> EMERGENCY : [Battery SOC < 20% || Component Temp > Critical Limit] / Trigger "EMERGENCY_ALARM"
+DEGRADED --> EMERGENCY : [Multi-subsystem cascade failure] / Lock Command Gate
+
+EMERGENCY --> RECOVERY : [Emergency ground command validated with override token] / Uplink Recovery Script
+SAFE_MODE --> RECOVERY : [Operator issues CMD_INITIATE_RECOVERY during valid pass] / Uplink Sequence
+
+RECOVERY --> NOMINAL : [All telemetry nominal for > 180s && SOC >= 75%] / Re-enable Payloads
+RECOVERY --> SAFE_MODE : [Recovery command failed verification || SOC declining] / Re-shed Loads
+
+EMERGENCY --> OFFLINE : [Complete power exhaustion (SOC=0%) || Thermal burnout] / Terminate Mission
+SAFE_MODE --> OFFLINE : [Permanent orbital decay / Loss of signal > 72h] / Mark Inactive
+
+' Rejection Note
+note right of SAFE_MODE
+  **Illegal Transitions Blocked:**
+  Direct transition from SAFE_MODE or EMERGENCY
+  to NOMINAL without passing through RECOVERY
+  is strictly rejected by the digital twin engine.
+end note
+
+note bottom of NOMINAL
+  **Operational Invariant:**
+  Satellite Operational Mode is distinct from
+  Incident Severity (INFO/WARN/CRIT) and
+  Command Pipeline Status (QUEUED/VALIDATING/etc).
+end note
+
+@enduml
