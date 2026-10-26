@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #080F1D;
+  --foreground: #E2E8F0;
+  
+  --surface: #111C2E;
+  --surface-elevated: #18263B;
+  --surface-border: #1E3352;
+  
+  --accent-cyan: #42C8FF;
+  --accent-blue: #729CFF;
+  --status-success: #22C55E;
+  --status-warning: #F59E0B;
+  --status-critical: #EF4444;
+}
+
+body {
+  background-color: #080F1D;
+  color: #E2E8F0;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* Custom dark aerospace scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #080F1D;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1E3352;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #42C8FF;
+}
