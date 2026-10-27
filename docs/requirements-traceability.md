@@ -1,7 +1,7 @@
 # OrbitOps — Requirements Traceability Matrix (RTM)
 
 **Specification Baseline:** `ORBITOPS-SRS-V1.0`
-**Current Milestone:** Phase 02 (Satellite Domain Models, Database & Persistence Engine)
+**Current Milestone:** Phase 03 (Deterministic Satellite Digital Twin Engine)
 
 ---
 
@@ -12,15 +12,15 @@
 | **FR-001** | Multi-satellite registry (Alpha, Beta, Gamma) | High | `backend/app/repositories/satellite_repository.py` | `02-class` | `TC-01` | Phase 02 | **IMPLEMENTED** |
 | **FR-002** | Satellite operational mode query | High | `backend/app/models/satellite.py` | `05-state-machine` | `TC-02` | Phase 02 | **IMPLEMENTED** |
 | **FR-003** | Configurable spacecraft physical constants | Medium| `backend/app/models/satellite.py` | `02-class` | `TC-03` | Phase 02 | **IMPLEMENTED** |
-| **FR-004** | Discrete simulation tick integration ($\Delta t=1\text{s}$) | High | `backend/domain/engine.py` | `02-class` | `TC-04` | Phase 03 | **PLANNED** |
-| **FR-005** | Simulation clock controls (pause, warp, step)| High | `backend/domain/clock.py` | `01-use-case` | `TC-05` | Phase 03 | **PLANNED** |
-| **FR-006** | Orbital propagation & eclipse calculation | High | `backend/domain/orbit.py` | `02-class` | `TC-06` | Phase 03 | **PLANNED** |
-| **FR-007** | Coupled subsystem telemetry generation | High | `backend/domain/subsystems/` | `02-class` | `TC-07` | Phase 03 | **PLANNED** |
+| **FR-004** | Discrete simulation tick integration ($\Delta t=1\text{s}$) | High | `backend/app/simulation/engine.py` | `02-class` | `TC-04` | Phase 03 | **IMPLEMENTED** |
+| **FR-005** | Simulation clock controls (pause, warp, step)| High | `backend/app/simulation/clock.py` | `01-use-case` | `TC-05` | Phase 03 | **IMPLEMENTED** |
+| **FR-006** | Orbital propagation & eclipse calculation | High | `backend/app/simulation/orbit.py`, `backend/app/simulation/eclipse.py` | `02-class` | `TC-06` | Phase 03 | **IMPLEMENTED** |
+| **FR-007** | Coupled subsystem telemetry generation | High | `backend/app/simulation/` | `02-class` | `TC-07` | Phase 03 | **IMPLEMENTED** |
 | **FR-008** | Real-time telemetry WebSocket streaming | High | `backend/api/v1/telemetry.py` | `01-use-case` | `TC-08` | Phase 04 | **PLANNED** |
 | **FR-009** | Telemetry samples database persistence | High | `backend/app/repositories/telemetry_repository.py`| `02-class` | `TC-09` | Phase 02 | **IMPLEMENTED** |
 | **FR-010** | Multi-tier threshold evaluation (Nom/Warn/Crit)| High| `backend/domain/detector.py` | `04-activity` | `TC-10` | Phase 05 | **PLANNED** |
 | **FR-011** | Aggregated dashboard health indicators | High | `frontend/components/Health/` | `01-use-case` | `TC-11` | Phase 05 | **PLANNED** |
-| **FR-012** | Autonomous emergency safe-mode transition | High | `backend/domain/satellite.py` | `05-state-machine` | `TC-12` | Phase 03 | **PLANNED** |
+| **FR-012** | Autonomous emergency safe-mode transition | High | `backend/app/simulation/health.py` | `05-state-machine` | `TC-12` | Phase 03 | **IMPLEMENTED** |
 | **FR-013** | Interactive 3D Earth globe with terminator | Medium| `frontend/components/Orbit3D/`| `01-use-case` | `TC-13` | Phase 06 | **PLANNED** |
 | **FR-014** | Orbital trajectory and ground track rendering | Medium| `frontend/components/Orbit3D/`| `01-use-case` | `TC-14` | Phase 06 | **PLANNED** |
 | **FR-015** | Ground station visibility cones visualization| Low | `frontend/components/Orbit3D/`| `01-use-case` | `TC-15` | Phase 06 | **PLANNED** |
@@ -54,6 +54,6 @@
 - **Total Mapped Test Cases:** 25
 - **Requirements Implemented in Phase 00:** Foundation infrastructure (Health check, monorepo, strict typing)
 - **Requirements Implemented in Phase 02:** `FR-001` (Multi-satellite registry), `FR-002` (Operational mode tracking), `FR-003` (Spacecraft physical constants), `FR-009` (Telemetry persistence & queries)
-- **Requirements Targeted for Phase 03:** `FR-004`, `FR-005`, `FR-006`, `FR-007`, `FR-012`
-- **Requirements Targeted for Phase 04–15:** `FR-008`, `FR-010` through `FR-036`
-- **Status Accounting:** 100% of functional requirements have defined component ownership, UML associations, and planned test IDs. Phase 02 test verification suite (`tests/test_traceability_cases.py`) verifies TC-01, TC-02, TC-03, and TC-09 with 100% pass rate.
+- **Requirements Implemented in Phase 03:** `FR-004` (Simulation tick integration), `FR-005` (Simulation clock controls), `FR-006` (Orbital propagation & eclipse), `FR-007` (Coupled subsystem telemetry), `FR-012` (Autonomous emergency safe-mode transition)
+- **Requirements Targeted for Phase 04–15:** `FR-008`, `FR-010`, `FR-011`, `FR-013` through `FR-036`
+- **Status Accounting:** 100% of functional requirements have defined component ownership, UML associations, and planned test IDs. Phase 03 integration test suite (`tests/test_simulation_integration.py`) verifies TC-04, TC-05, TC-06, TC-07, and TC-12 with 100% pass rate. All 9 implemented requirements are fully backed by automated unit and integration tests.

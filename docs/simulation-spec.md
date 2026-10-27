@@ -1,4 +1,4 @@
-﻿# OrbitOps — Satellite Digital Twin Simulation Specification
+# OrbitOps — Satellite Digital Twin Simulation Specification
 
 **Target Implementation:** Phase 03 (Deterministic Satellite Digital Twin Engine)
 **Document Identifier:** `ORBITOPS-SIM-SPEC-V1.0`
@@ -169,3 +169,46 @@ checkpoint = {
 3. **Replay Isolation:**
    - Replay reads strictly from historical `telemetry_samples` and `mission_events`.
    - The active `SimulationEngine` memory space is completely untouched during playback.
+
+---
+
+## 8. Phase 03 Implementation Architecture & Standalone Verification
+
+### 8.1 Simulation Update Sequence (Per Satellite, Per Tick)
+
+The digital twin advances in a deterministic, documented 19-step update order:
+1. **Orbital Propagation:** True anomaly advances via mean motion $\nu(t + \Delta t) = \nu(t) + n\cdot \Delta t$; ECI $(x,y,z)$ coordinates computed; geodetic latitude, longitude, and altitude derived accounting for Earth rotation.
+2. **Eclipse Detection:** Cylindrical shadow evaluated using new satellite position and Sun direction vector.
+3. **ADCS Sun Incidence:** Effective incidence angle calculated from orbital plane geometry and pointing mode (`SUN_POINTING` drives angle to $0^\circ$).
+4. **ADCS Rate Integration:** Control torques and seeded disturbance torques integrated; safe-tumble detected if rate $> 5.0^\circ/\text{s}$.
+5. **Payload State Update:** Power consumption evaluated based on operational mode and payload activity.
+6. **Communications State Update:** Transmitter power and local link quality estimated based on active/standby state.
+7. **Heater State Evaluation:** Thermostatic hysteresis evaluated using prior bus temperature to prevent circularity.
+8. **Solar Power Generation:** Generation computed from solar constant, effective cell area, cell efficiency, incidence cosine, and eclipse flag.
+9. **Total Electrical Load:** Sum of avionics base, ADCS, comms, payload, and active heater loads.
+10. **Battery Energy Integration:** Stored energy integrated using net power and charge ($\eta = 0.92$) / discharge ($\eta = 0.96$) efficiencies; SOC clamped to $[0\%, 100\%]$.
+11. **Bus Voltage Calculation:** Unregulated voltage calculated with linear SOC curve and internal resistance voltage drop.
+12. **Thermal State Integration:** Lumped radiative exchange with deep space $(3\ \text{K})$ and heat input from electrical dissipation $(60\%)$ and solar absorption.
+13. **Subsystem Health Classification:** Power, thermal, ADCS, comms, and payload classified as `NOMINAL`, `WARNING`, or `CRITICAL`.
+14. **Autonomous Mode Evaluation:** Sustained low SOC ($< 20\%$ for 60 ticks), high temperature ($> 65^\circ\text{C}$ for 60 ticks), or critical tumble ($> 5.0^\circ/\text{s}$) triggers `SAFE_MODE`.
+15. **Safe Mode Recovery Orienting:** ADCS automatically commands `SUN_POINTING` when entering `SAFE_MODE` to maximize battery recovery.
+16. **Telemetry Frame Generation:** Monotonically sequenced, typed `TelemetryFrame` generated from authoritative physics state with small deterministic sensor noise.
+
+### 8.2 Standalone Demonstration & Verification
+
+OrbitOps provides an isolated simulation demonstration that runs without database alterations or web server dependencies:
+
+```bash
+cd backend
+uv run python -m app.simulation.demo
+# Or via pyproject script:
+uv run orbitops-demo
+```
+
+The demonstration verifies:
+- Initialization of all three virtual spacecraft (`SAT-001`, `SAT-002`, `SAT-003`).
+- Advancing simulation time by 100 logical ticks.
+- Dynamic pause and single-step advancing.
+- Full snapshot capture and atomic restoration into an independent engine instance.
+- Exact floating-point determinism across repeated runs with identical random seed (`seed=42`).
+- 1000-tick extended stability (no NaNs, infinite values, or unphysical SOC bounds).

@@ -1,4 +1,4 @@
-﻿# OrbitOps — System Architecture Specification
+# OrbitOps — System Architecture Specification
 
 **Document Version:** `1.1`
 **Architecture Style:** Modular Monolith with Decoupled Presentation
@@ -102,23 +102,22 @@ backend/app/
 ├── core/
 │   ├── config.py                   # Centralized Pydantic settings
 │   └── logging.py                  # Structured console & file logging
-├── domain/                         # Pure Simulation Domain (Zero I/O)
-│   ├── clock.py                    # Simulation clock with warp & step
-│   ├── orbit.py                    # Spherical Keplerian propagator & eclipse
-│   ├── ground.py                   # Station visibility & Doppler math
-│   ├── subsystems/
-│   │   ├── base.py                 # Abstract subsystem interface
-│   │   ├── power.py                # Solar array, battery SOC, bus voltage
-│   │   ├── thermal.py              # Dissipation, radiation, heater loop
-│   │   ├── adcs.py                 # Pointing modes, momentum, angular rate
-│   │   ├── comms.py                # Carrier lock, SNR, transponder state
-│   │   └── payload.py              # Instrument duty cycles & buffer
-│   ├── anomaly/
-│   │   ├── detector.py             # Threshold evaluator & residual checker
-│   │   └── investigator.py         # Hypothesis ranker & evidence proof matrix
-│   └── commands/
-│       ├── validator.py            # Precondition flight safety rules
-│       └── executor.py             # Spacecraft bus state modifier
+├── simulation/                     # Pure Digital Twin Simulation Engine (Zero Web I/O)
+│   ├── clock.py                    # Deterministic simulation clock with warp & step
+│   ├── orbit.py                    # Two-body orbit propagator & geodetic conversion
+│   ├── eclipse.py                  # Cylindrical Earth-shadow occlusion model
+│   ├── power.py                    # Solar photovoltaic, battery energy, bus voltage
+│   ├── thermal.py                  # Stefan-Boltzmann radiative cooling & heater loop
+│   ├── adcs.py                     # Pointing dynamics, torques, angular rate
+│   ├── communications.py           # Transmitter power & local link estimates
+│   ├── payload.py                  # Instrument duty cycles & memory storage
+│   ├── health.py                   # Subsystem health & autonomous safe mode
+│   ├── state.py                    # Subsystem runtime state dataclasses & serialization
+│   ├── telemetry.py                # Authoritative telemetry frame generator
+│   ├── snapshots.py                # Simulation checkpoint serialization & restoration
+│   ├── fleet.py                    # Database adapter & telemetry persistence bridge
+│   ├── engine.py                   # Master simulation engine orchestrator
+│   └── demo.py                     # Standalone CLI demonstration runner
 ├── models/                         # SQLAlchemy 2.0 Persistence
 │   ├── base.py
 │   ├── satellite.py

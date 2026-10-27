@@ -9,10 +9,11 @@ FastAPI service powering the OrbitOps Satellite Mission Control & Digital Twin S
 - **ORM / Persistence**: SQLAlchemy 2.0 Declarative ORM with SQLite (WAL mode, foreign key enforcement)
 - **Migrations**: Alembic (`alembic/`)
 - **Domain Layer**: Pure typed domain models, enums, constants, exceptions (`app.domain/`)
+- **Simulation Engine**: Pure digital twin differential equations, coupled physics, and deterministic clock (`app.simulation/`)
 - **Repositories**: Isolated data access patterns for missions, satellites, subsystems, telemetry, incidents, commands, events (`app.repositories/`)
 - **Validation**: Pydantic v2
-- **Testing**: Pytest & HTTPX
-- **Code Quality**: Ruff
+- **Testing**: Pytest & HTTPX (199 automated unit, domain, snapshot, and integration tests)
+- **Code Quality**: Ruff (zero warnings, fully formatted)
 
 ## Quick Start
 
@@ -29,14 +30,43 @@ uv run alembic upgrade head
 # Seed initial virtual constellation (SAT-001 Alpha, SAT-002 Beta, SAT-003 Gamma)
 uv run python -m app.cli.seed
 
+# Run standalone digital twin simulation demonstration (zero web/DB dependencies)
+uv run python -m app.simulation.demo
+# Or via pyproject script:
+uv run orbitops-demo
+
 # Run development server
 uv run uvicorn app.main:app --reload --port 8000
 
-# Run full test suite (23 unit, migration, domain, and persistence tests)
+# Run full test suite (199 tests passing 100%)
 uv run pytest -v
 
-# Run lint checks
+# Run lint and formatting checks
 uv run ruff check .
+uv run ruff format --check .
+```
+
+## Python API Usage Example
+
+```python
+from app.simulation.engine import SimulationEngine
+from app.simulation.fleet import build_default_fleet
+
+# Initialize 3-satellite constellation with deterministic seed
+configs = build_default_fleet()
+engine = SimulationEngine(fleet_configs=configs, seed=42)
+
+# Start clock and advance 100 simulation ticks
+engine.start()
+for _ in range(100):
+    frames = engine.tick(dt=1.0)
+
+# Inspect telemetry for SAT-001 (ORBITOPS-ALPHA)
+f1 = next(f for f in frames if f.satellite_id == "SAT-001")
+print(f"Time: {engine.clock.sim_time_s}s | SOC: {f1.measurements['BATT_SOC'].value}%")
+
+# Capture deterministic checkpoint snapshot
+snapshot = engine.capture_snapshot()
 ```
 
 ## Database Architecture (Phase 02)

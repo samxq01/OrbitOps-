@@ -15,10 +15,12 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Backend pytest failed!" }
     Write-Host "✅ Backend tests passed.`n" -ForegroundColor Green
 
-    Write-Host ">>> [2/5] Running Backend Ruff Linting..." -ForegroundColor Yellow
+    Write-Host ">>> [2/5] Running Backend Ruff Linting and Format Checks..." -ForegroundColor Yellow
     uv run ruff check .
     if ($LASTEXITCODE -ne 0) { throw "Backend ruff linting failed!" }
-    Write-Host "✅ Backend linting passed.`n" -ForegroundColor Green
+    uv run ruff format --check .
+    if ($LASTEXITCODE -ne 0) { throw "Backend ruff format check failed!" }
+    Write-Host "✅ Backend linting and formatting passed.`n" -ForegroundColor Green
 } finally {
     Pop-Location
 }

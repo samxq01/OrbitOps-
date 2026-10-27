@@ -1,7 +1,7 @@
 # OrbitOps — Master Test Plan & Quality Assurance Strategy
 
 **Target Alignment:** Software Engineering IA3
-**Status:** Phase 02 Verified (Domain & Persistence Baseline)
+**Status:** Phase 03 Verified (Deterministic Satellite Digital Twin Engine)
 
 ---
 
@@ -42,15 +42,15 @@ OrbitOps applies a multi-tier testing pyramid to guarantee deterministic digital
 | **TC-01** | `FR-001` | Verify satellite registry initializes 3 distinct virtual satellites | Fresh DB / Registry startup | Query `SatelliteRepository.list_all()` | Returns exactly Alpha, Beta, Gamma with valid NORAD IDs | Returns 3 satellites (Alpha, Beta, Gamma) with virtual NORAD IDs 99101, 99102, 99103 and 5 subsystems each | **PASS** |
 | **TC-02** | `FR-002` | Validate initial satellite operational mode | Satellite instantiated | Inspect `satellite.operational_mode` | Mode equals `INITIALIZING` or `NOMINAL` | Returns valid `NOMINAL` mode; invalid mode transitions rejected by enum validation | **PASS** |
 | **TC-03** | `FR-003` | Verify physical constants configuration override | Custom configuration | Load custom battery capacity ($500\ \text{Wh}$) | Spacecraft calculations use $500\ \text{Wh}$ | Custom constants persisted successfully; negative mass and invalid geometry rejected | **PASS** |
-| **TC-04** | `FR-004` | Confirm discrete simulation tick advances state | Simulation running | Execute `engine.advance_tick(1.0)` | Sim clock advances by $1.0\ \text{s}$; coordinates update | NOT EXECUTED | NOT RUN |
-| **TC-05** | `FR-005` | Test clock pause, resume, and step controls | Engine active | Call `clock.pause()`, `step()`, `resume()` | Clock halts on pause, advances $1\ \text{tick}$ on step | NOT EXECUTED | NOT RUN |
-| **TC-06** | `FR-006` | Test cylindrical eclipse entry and solar drop | Spacecraft enters shadow | Propagate orbit into Earth shadow | `is_in_eclipse=True`, `PWR_SOLAR_W` drops to $0.0\ \text{W}$ | NOT EXECUTED | NOT RUN |
-| **TC-07** | `FR-007` | Verify coupled power-battery discharge in eclipse | Orbit in eclipse, load $=120\ \text{W}$ | Advance 60 simulation ticks | Battery SOC decreases deterministically ($\Delta \text{SOC} < 0$) | NOT EXECUTED | NOT RUN |
+| **TC-04** | `FR-004` | Confirm discrete simulation tick advances state | Simulation running | Execute `engine.advance_tick(1.0)` | Sim clock advances by $1.0\ \text{s}$; coordinates update | Clock advances monotonically by $1.0\ \text{s}$; all 5 subsystems update in documented sequence | **PASS** |
+| **TC-05** | `FR-005` | Test clock pause, resume, and step controls | Engine active | Call `clock.pause()`, `step()`, `resume()` | Clock halts on pause, advances $1\ \text{tick}$ on step | Paused clock halts frame emission; `step()` forces single-tick advance; resume re-enables ticking | **PASS** |
+| **TC-06** | `FR-006` | Test cylindrical eclipse entry and solar drop | Spacecraft enters shadow | Propagate orbit into Earth shadow | `is_in_eclipse=True`, `PWR_SOLAR_W` drops to $0.0\ \text{W}$ | Cylindrical shadow correctly flags eclipse; solar generation drops < 5W; full orbit yields at least 2 transitions | **PASS** |
+| **TC-07** | `FR-007` | Verify coupled power-battery discharge in eclipse | Orbit in eclipse, load $=120\ \text{W}$ | Advance 60 simulation ticks | Battery SOC decreases deterministically ($\Delta \text{SOC} < 0$) | In eclipse, solar power vanishes and load drains battery according to discharge efficiency; SOC decreases strictly | **PASS** |
 | **TC-08** | `FR-008` | Test telemetry WebSocket broadcast envelope | Client connected | Receive broadcast frame | Frame matches JSON schema with valid sequence ID | NOT EXECUTED | NOT RUN |
 | **TC-09** | `FR-009` | Test telemetry sample persistence in SQLite WAL | Active telemetry stream | Write samples to DB; query bounded history | All records retrievable by `(sat_id, sim_time)` | Samples persisted; ordered query by `(satellite_id, sim_time)` respects limit and ordering | **PASS** |
 | **TC-10** | `FR-010` | Detect multi-tier telemetry threshold breach | Telemetry within warning bounds | Inject $V_{\text{bus}} = 23.8\ \text{V}$ | Parameter status transitions from `NOMINAL` to `WARNING` | NOT EXECUTED | NOT RUN |
 | **TC-11** | `FR-011` | Verify dashboard UI updates on telemetry warning | Frontend connected | Stream warning telemetry frame | Subsystem indicator turns Amber/Red within $1.0\ \text{s}$ | NOT EXECUTED | NOT RUN |
-| **TC-12** | `FR-012` | Trigger autonomous safe-mode on critical low SOC | Satellite in nominal mode | Force $\text{SOC} < 20\%$ for $120\ \text{s}$ | Satellite mode transitions to `SAFE_MODE`; payload $=0\ \text{W}$ | NOT EXECUTED | NOT RUN |
+| **TC-12** | `FR-012` | Trigger autonomous safe-mode on critical low SOC | Satellite in nominal mode | Force $\text{SOC} < 20\%$ for $120\ \text{s}$ | Satellite mode transitions to `SAFE_MODE`; payload $=0\ \text{W}$ | Sustained critical SOC (<20% for 60 ticks) triggers autonomous transition to `SAFE_MODE`; ADCS points to sun | **PASS** |
 | **TC-13** | `FR-013` | Verify 3D Earth globe renders terminator line | WebGL enabled browser | Load Orbital Viewer route | Day/night boundary matches calculated solar subpoint | NOT EXECUTED | NOT RUN |
 | **TC-14** | `FR-014` | Confirm orbit trajectory matches Keplerian ground track | Orbit propagator active | Project 1 orbital period | Ground track closes smoothly with proper nodal precession | NOT EXECUTED | NOT RUN |
 | **TC-15** | `FR-015` | Validate ground station visibility cone geometry | Satellite approaching Kourou | Compute elevation angle | Elevation angle crosses $10.0^\circ$ at calculated AOS time | NOT EXECUTED | NOT RUN |

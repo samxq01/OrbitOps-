@@ -4,7 +4,7 @@
 
 > **Tagline:** Observe. Diagnose. Decide. Recover.
 > **Course:** Software Engineering (IA3 Project)
-> **Status:** Phase 02 — Satellite Domain Models, Database & Persistence Engine
+> **Status:** Phase 03 — Deterministic Satellite Digital Twin Engine
 
 ---
 
@@ -53,8 +53,9 @@ OrbitOps/
 │   │   ├── models/           # SQLAlchemy 2.0 Typed Declarative ORM Models
 │   │   ├── repositories/     # Data Access Repositories (Satellite, Telemetry, Events...)
 │   │   ├── schemas/          # Pydantic v2 Serialization DTOs
+│   │   ├── simulation/       # Pure Digital Twin Physics Engine & Orchestrator
 │   │   └── main.py           # Application Entrypoint
-│   ├── tests/                # Automated Pytest Suite (Unit, Domain, Repos, Migrations)
+│   ├── tests/                # Automated Pytest Suite (Unit, Domain, Physics, Snapshots, Integration)
 │   ├── alembic.ini           # Alembic Database Migration Configuration
 │   ├── pyproject.toml        # Python Dependencies & Ruff Configuration
 │   └── uv.lock               # Deterministic Python Lockfile
@@ -69,6 +70,7 @@ OrbitOps/
 ├── docs/                     # Architectural, SRS, Data Model, and Roadmap Docs
 │   ├── overview.md           # Project Overview & Innovations
 │   ├── architecture.md       # Modular Monolith & Subsystem Design
+│   ├── simulation-spec.md    # Coupled Spacecraft Physics & Update Order
 │   ├── data-model.md         # 12-Table SQLite Schema & Integrity Constraints
 │   ├── srs.md                # Software Requirements Specification (SRS)
 │   ├── requirements-traceability.md # Requirements Traceability Matrix (RTM)
@@ -118,6 +120,9 @@ uv run alembic upgrade head
 # Seed virtual satellites (SAT-001 Alpha, SAT-002 Beta, SAT-003 Gamma)
 uv run python -m app.cli.seed
 
+# Run standalone digital twin simulation demonstration
+uv run python -m app.simulation.demo
+
 # Start development API server
 uv run uvicorn app.main:app --reload --port 8000
 ```
@@ -142,8 +147,9 @@ Run all test suites locally:
 ### Backend Tests & Linting
 ```bash
 cd backend
-uv run pytest -v       # Run automated unit, migration, domain & persistence tests (23 passed)
+uv run pytest -v       # Run automated unit, physics, snapshot & integration tests (199 passed)
 uv run ruff check .    # Run Python code quality linting (0 errors)
+uv run ruff format --check . # Run formatting checks (100% formatted)
 ```
 
 ### Frontend Typecheck, Linting & Build
@@ -163,6 +169,6 @@ npm run build          # Run Next.js production bundle compilation
 
 ## 8. Current Implementation Phase
 
-**Current Phase:** `Phase 02 — Satellite Domain Models, Database & Persistence Engine`
-**Git Checkpoint:** `feat(phase-02): implement satellite domain and persistence`
+**Current Phase:** `Phase 03 — Deterministic Satellite Digital Twin Engine`
+**Git Checkpoint:** `feat(phase-03): build deterministic satellite simulator`
 **Active Development Branch:** `feature/orbitops-ia3`
